@@ -1,3 +1,5 @@
+#!/bin/bash
+
 case "$1" in
 'start')
 printf "Starting tweetd\n"
