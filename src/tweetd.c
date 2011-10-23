@@ -335,6 +335,8 @@ int main(int argc, char *argv[])
 				action = tweetd_handle_action(last_msg);
 				log_message("Last message: %s\n", last_msg);
 				log_message("Action : %s\n", action);
+				gsocial_send_message(screen_name, 
+						last_msg);
 			}
 			unslept = SLEEP_TIME;       /* Reset interval */
 		}
