@@ -25,6 +25,7 @@ char *key = NULL;
 char *secret = NULL;
 gchar *last_id = NULL;
 gchar * screen_name= "gabriel_chavez";
+int first_time = 0;
 
 int tweetd_daemonize(void);
 
@@ -342,7 +343,7 @@ int main(int argc, char *argv[])
 			count++;
 			char * last_msg = get_last_message();
 			char * action;
-			if (last_msg != NULL) {
+			if (last_msg != NULL && first_time == 1) {
 				log_message("Last message: %s\n", last_msg);
 				if(tweetd_handle_action(last_msg, &action) == 0) {
 					log_message("handle_action: %s\n", action);
@@ -353,6 +354,7 @@ int main(int argc, char *argv[])
 					log_message("Everything went WRONG");
 				}
 			}
+            first_time = 1;
 			unslept = SLEEP_TIME;       /* Reset interval */
 		}
 	}
