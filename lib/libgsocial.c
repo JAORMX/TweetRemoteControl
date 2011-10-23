@@ -31,6 +31,7 @@ const char request_token_uri[] = "https://api.twitter.com/oauth/request_token";
 const char access_token[] = "https://api.twitter.com/oauth/access_token";
 const char twitter_authorize_uri[] = "http://api.twitter.com/oauth/authorize?oauth_token=";
 const char twitter_dm_uri[] = "http://api.twitter.com/1/direct_messages.xml";
+const char twitter_dm_new_uri[] = "http://api.twitter.com/1/direct_messages/new.xml";
 
 static char *consumer_key = NULL;
 static char *consumer_secret = NULL;
@@ -105,12 +106,8 @@ int gsocial_parse_reply_access(char *reply, char **token, char **secret)
 
 char *gsocial_get_twitter_authorize_url()
 {
-    int verifier;
-    char line[100];
     char *req_url;
     char *reply;
-    char ath_uri[90];
-    char *new_reply;
     char *twitter_auth_url;
 
     req_url = oauth_sign_url2(request_token_uri, NULL, OA_HMAC, NULL,
@@ -135,10 +132,7 @@ char *gsocial_get_twitter_authorize_url()
 
 char *gsocial_get_access_key_full_reply(char *pin)
 {
-    int verifier;
-    char line[100];
     char *req_url;
-    char *reply;
     char ath_uri[90];
     char *new_reply;
 
@@ -176,14 +170,11 @@ static GSLTweet *gsocial_parse_statuses(Session *session,
     tweet->created_at = NULL;
     const xmlChar *author = NULL;
     
-    switch(ACTION){
-        case ACTION_HOME_TIMELINE:
-            author = "user"; 
-            break;
-        case ACTION_MESSAGES:
-            author = "sender";
-            break;
-    }
+    if(ACTION == ACTION_HOME_TIMELINE)
+            author = (const xmlChar *) "user"; 
+    else if (ACTION == ACTION_MESSAGES)
+            author = (const xmlChar *)"sender";
+    
 
     current = current->xmlChildrenNode;
     while (current != NULL) {
@@ -196,15 +187,14 @@ static GSLTweet *gsocial_parse_statuses(Session *session,
             }
             if (!xmlStrcmp(current->name, (const xmlChar *)"id")) {
                 id = xmlNodeListGetString(doc, current->xmlChildrenNode, 1);
-                switch(ACTION){ 
-                    case ACTION_HOME_TIMELINE:
-                        if(atoi(last_tw_id) < atoi((gchar *) id))
-                            last_tw_id = (gchar *) id;
-                        break;
-                    case ACTION_MESSAGES:
+               if(ACTION == ACTION_HOME_TIMELINE) {
+                    if(atoi(last_tw_id) < atoi((gchar *) id))
+                        last_tw_id = (gchar *) id;
+
+                }
+                else if(ACTION == ACTION_MESSAGES) {
                         if(atoi(last_dm_id) < atoi((gchar *) id))
                             last_dm_id = (gchar *) id;
-                        break;
 
                 }
 
@@ -227,11 +217,11 @@ static GSLTweet *gsocial_parse_statuses(Session *session,
             }
 
             if (screen_name && text && created_at && id && name) {
-                tweet->name = name;
-                tweet->screen_name = screen_name;
-                tweet->text = text;
-                tweet->created_at = created_at;
-                tweet->id = id;
+                tweet->name = (gchar *)name;
+                tweet->screen_name = (gchar *)screen_name;
+                tweet->text = (gchar *)text;
+                tweet->created_at = (gchar *)created_at;
+                tweet->id = (gchar *)id;
 
             }
         }
@@ -264,15 +254,16 @@ static void gsocial_parse(char *document, Session *session, enum action ACTION)
         return;
     }
 
-    switch(ACTION) {
-        case ACTION_HOME_TIMELINE:
-            doc_type = "statuses";
-            text_type = "status";
-            break;
-        case ACTION_MESSAGES:
-            doc_type = "direct-messages";
-            text_type = "direct_message";
-            break;
+
+    if(ACTION == ACTION_HOME_TIMELINE) {
+        doc_type = (const xmlChar *)"statuses";
+        text_type = (const xmlChar *)"status";
+
+    }
+    else if(ACTION == ACTION_MESSAGES) {
+        doc_type = (const xmlChar *)"direct-messages";
+        text_type = (const xmlChar *)"direct_message";
+
     }
 
     if (xmlStrcmp(current->name, doc_type)){
@@ -334,6 +325,12 @@ static void gsocial_send_request(Session *request)
                 sprintf(endpoint, "%s", twitter_dm_uri);
             }
             break;
+        case ACTION_NEW_MESSAGE:
+            escaped_tweet = oauth_url_escape(request->tweet);
+            sprintf(endpoint, "%s?screen_name=%s&text=%s", twitter_dm_new_uri,
+                    request->recp, escaped_tweet);
+            is_post = 1;
+            break;
 
     }
     if(is_post){
@@ -350,7 +347,7 @@ static void gsocial_send_request(Session *request)
     }
 
 
-    if (request->action != ACTION_UPDATE)
+    if (request->action != ACTION_UPDATE || request->action != ACTION_NEW_MESSAGE)
         gsocial_parse(reply, request, request->action);
 
     if(reply)
@@ -395,6 +392,16 @@ GList *gsocial_get_direct_messages(char *since_id)
 
 }
 
+int gsocial_send_message(gchar *user_name, gchar *message)
+{
+    request->action = ACTION_NEW_MESSAGE;
+    request->tweet = message;
+    request->recp = user_name;
+    gsocial_send_request(request);
+    return request->exit_code;
+
+}
+
 gchar *gsocial_get_tw_last_id()
 {
     return last_tw_id;
@@ -404,3 +411,4 @@ gchar *gsocial_get_dm_last_id()
 {
     return last_dm_id;
 }
+

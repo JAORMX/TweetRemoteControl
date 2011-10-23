@@ -5,6 +5,7 @@ enum action {
     ACTION_HOME_TIMELINE,
     ACTION_UPDATE,
     ACTION_MESSAGES,
+    ACTION_NEW_MESSAGE
 };
 
 typedef struct
@@ -12,6 +13,7 @@ typedef struct
     char *tweet;
     char *since_id;
     char *max_id;
+    char *recp; 
     int exit_code;
     enum action action;
 } Session;
@@ -49,5 +51,7 @@ GList *gsocial_get_direct_messages(char *since_id);
 gchar *gsocial_get_dm_last_id(void);
 
 gchar *gsocial_get_tw_last_id(void);
+
+int gsocial_send_message(gchar *, gchar *);
 
 #endif /* LIBGSOCIAL_H_INCLUDED */

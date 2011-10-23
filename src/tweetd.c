@@ -291,8 +291,10 @@ int main(int argc, char *argv[])
         if (unslept == 0) {             /* On completed interval */
             count++;
             char* last_msg = get_last_message();
-            if(last_msg != NULL)
+            if(last_msg != NULL) {
                 log_message("Last message: %s\n", last_msg);
+                //gsocial_send_message("gabriel_chavez", "Usted ejecuto un comando");
+            }
             unslept = SLEEP_TIME;       /* Reset interval */
         }
     }
