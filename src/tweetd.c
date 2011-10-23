@@ -24,7 +24,7 @@ char consu_secret[] = "8PF3On5ATUlplxtJCC4xzFwVGjLkFTuQjQYSoNCUc";
 char *key = NULL;
 char *secret = NULL;
 gchar *last_id = NULL;
-gchar * screen_name= NULL;
+gchar * screen_name= "gabriel_chavez";
 
 int tweetd_daemonize(void);
 
