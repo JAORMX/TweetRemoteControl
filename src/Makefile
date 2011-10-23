@@ -1,17 +1,19 @@
-include ../Makefile.inc
+LIBGSOCIAL = ../lib/libgsocial.o
 
-GEN_EXE = tweetd
+CFLAGS = -I../lib/  `pkg-config --cflags glib-2.0`
 
-EXE = ${GEN_EXE} ${LINUX_EXE}
+LIBS=`xml2-config --libs` `pkg-config --libs glib-2.0` -loauth
 
-all : ${EXE}
+all: tweetd
+	gcc $(LIBGSOCIAL) tweetd.o -o tweetd $(LIBS)
 
-allgen : ${GEN_EXE}
+tweetd: tweetd.c 
+	gcc -c $<  $(CFLAGS) -o $@.o
 
-clean : 
-	${RM} ${EXE} *.o
+.PHONY:
+clean:
+	-rm *.o tweetd
 
-showall :
-	@ echo ${EXE}
 
-${EXE} : ${LPLIB}		# True as a rough approximation
+
+

@@ -4,7 +4,7 @@
 # (The library directory is first so that the library gets built first)
 #
 
-DIRS = 	src
+DIRS = 	lib src
 
 # Dummy targets for building and clobbering everything in all subdirectories
 
