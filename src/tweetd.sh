@@ -1,9 +1,16 @@
 #!/bin/bash
+# SRC_DIR is the directory where the binary is.
+#
+SRC_DIR=
 
 case "$1" in
 'start')
 printf "Starting tweetd\n"
-$(pwd)/tweetd
+if [ -z "${SRC_DIR}" ]; then 
+$(pwd)/tweetd;
+else
+${SRC_DIR}/tweetd;
+fi
 ;;
 
 'stop')
