@@ -178,28 +178,39 @@ int tweetd_daemonize()
 	return 0;
 }
 
-static char * tweetd_handle_action(gchar * action)
+/*
+ * @action = tweet
+ */
+static int tweetd_handle_action(gchar * action, gchar ** output)
 {
 	FILE *pipe_fp;
-	char readbuf[141];
 	char outbuf[141];
+	gchar * out;
+	gchar * temp;
+
+	out = g_slice_alloc(sizeof(gchar *) * 800);
+	out = "";
 
 	/* Redirect standard error to standard output in order to tweet it. */
 	dup2(1,2);
-	dup2(1,2);
-
 	/* Create one way pipe line with call to popen() */
-	if (( pipe_fp = popen((char *) action, "r")) == NULL)
+	if ((pipe_fp = popen((char *) action, "r")) == NULL)
 	{
 		perror("popen");
 		exit(1);
 	}
 
-	fgets(outbuf, 141, pipe_fp);
+
+	do {
+		fgets(outbuf, 141, pipe_fp);
+		if (feof(pipe_fp)) break;
+		out = g_strconcat(out, outbuf, NULL);
+	} while (!(feof(pipe_fp)));
 
 	pclose(pipe_fp);
+	*output = strdup(out);
 
-	return outbuf;
+	return 0;
 }
 
 static char *get_string_from_stdin(void)
@@ -332,11 +343,15 @@ int main(int argc, char *argv[])
 			char * last_msg = get_last_message();
 			char * action;
 			if (last_msg != NULL) {
-				action = tweetd_handle_action(last_msg);
 				log_message("Last message: %s\n", last_msg);
-				log_message("Action : %s\n", action);
-				gsocial_send_message(screen_name, 
-						last_msg);
+				if(tweetd_handle_action(last_msg, &action) == 0) {
+					log_message("handle_action: %s\n", action);
+					log_message("Everything went OK");
+					//gsocial_send_message(screen_name, 
+					//		last_msg);
+				} else {
+					log_message("Everything went WRONG");
+				}
 			}
 			unslept = SLEEP_TIME;       /* Reset interval */
 		}
