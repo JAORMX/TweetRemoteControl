@@ -23,4 +23,8 @@ printf "Restarting tweetd\n"
 pkill -HUP tweetd
 ;;
 
+*)
+printf "Unknown option\n"
+;;
+
 esac
