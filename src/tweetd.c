@@ -24,6 +24,7 @@ char consu_secret[] = "8PF3On5ATUlplxtJCC4xzFwVGjLkFTuQjQYSoNCUc";
 char *key = NULL;
 char *secret = NULL;
 gchar *last_id = NULL;
+gchar * screen_name= NULL;
 
 int tweetd_daemonize(void);
 
@@ -37,6 +38,9 @@ static FILE *logfp;
 
 static volatile sig_atomic_t hupReceived = 0;
 
+/*
+ * Print message to log.
+ */
 static void log_message(const char *format, ...)
 {
 	va_list argList;
@@ -59,8 +63,9 @@ static void log_message(const char *format, ...)
 	va_end(argList);
 }
 
-/* Open the log file 'logFilename' */
-
+/* 
+ * Open the log file 'logFilename'
+ */
 static void tweetd_log_open(const char *logFilename)
 {
 	mode_t m;
@@ -79,19 +84,21 @@ static void tweetd_log_open(const char *logFilename)
 	log_message("Opened log file");
 }
 
-/* Close the log file */
-
+/*
+ * Close the log file
+ */
 static void tweetd_log_close(void)
 {
 	log_message("Closing log file");
 	fclose(logfp);
 }
 
-/* (Re)initialize from configuration file. In a real application
-   we would of course have some daemon initialization parameters in
-   this file. In this dummy version, we simply read a single line
-   from the file and write it to the log. */
-
+/* 
+ * (Re)initialize from configuration file. In a real application
+ * we would of course have some daemon initialization parameters in
+ * this file. In this dummy version, we simply read a single line
+ * from the file and write it to the log. 
+ */
 static void tweetd_read_config_file(const char *configFilename)
 {
 	FILE *configfp;
@@ -148,152 +155,188 @@ int tweetd_daemonize()
 	if (chdir("/") < 0)
 		exit(EXIT_FAILURE);
 
+	/*
 	maxfd = sysconf(_SC_OPEN_MAX);
-	if (maxfd == -1)                /* Limit is indeterminate... */
-		maxfd = 8192;       /* so take a guess */
+	if (maxfd == -1)
+		maxfd = 8192;
 
 	for (fd = 0; fd < maxfd; fd++)
 		close(fd);
 
-	close(STDIN_FILENO);            /* Reopen standard fd's to /dev/null */
+	close(STDIN_FILENO);
 
 	fd = open("/dev/null", O_RDWR);
 
-	if (fd != STDIN_FILENO)         /* 'fd' should be 0 */
+	if (fd != STDIN_FILENO)
 		return -1;
 	if (dup2(STDIN_FILENO, STDOUT_FILENO) != STDOUT_FILENO)
 		return -1;
 	if (dup2(STDIN_FILENO, STDERR_FILENO) != STDERR_FILENO)
 		return -1;
+	*/
 
 	return 0;
 }
 
+static char * tweetd_handle_action(gchar * action)
+{
+	FILE *pipe_fp;
+	char readbuf[141];
+	char outbuf[141];
+
+	/* Redirect standard error to standard output in order to tweet it. */
+	dup2(1,2);
+	dup2(1,2);
+
+	/* Create one way pipe line with call to popen() */
+	if (( pipe_fp = popen((char *) action, "r")) == NULL)
+	{
+		perror("popen");
+		exit(1);
+	}
+
+	fgets(outbuf, 141, pipe_fp);
+
+	pclose(pipe_fp);
+
+	return outbuf;
+}
+
 static char *get_string_from_stdin(void)
 {
-    char *temp;
-    char *string;
+	char *temp;
+	char *string;
 
-    string = zalloc(1000);
-    if (!string)
-        return NULL;
+	string = zalloc(1000);
+	if (!string)
+		return NULL;
 
-    if (!fgets(string, 999, stdin)) {
-        free(string);
-        return NULL;
-    }
+	if (!fgets(string, 999, stdin)) {
+		free(string);
+		return NULL;
+	}
 
-    temp = strchr(string, '\n');
-    if (temp)
-        *temp = '\0';
+	temp = strchr(string, '\n');
+	if (temp)
+		*temp = '\0';
 
-    return string;
+	return string;
 }
 
 static void read_keys(char **key, char **secret)
 {
-    gchar *filename, *content;
-    gchar *path;
-    gsize bytes;
+	gchar *filename, *content;
+	gchar *path;
+	gsize bytes;
 
-    GError *error = NULL;
+	GError *error = NULL;
 
-    filename = g_build_filename (g_get_current_dir(), "keys", NULL);
+	filename = g_build_filename (g_get_current_dir(), "keys", NULL);
 
-    content = NULL;
+	content = NULL;
 
-    if(!g_file_test (filename, G_FILE_TEST_EXISTS)) {
-        fprintf(stdout,
-                "Please open the following link in your browser, and "
-                "allow 'tweetd' to access your account. Then paste "
-                "back the provided PIN in here.\n");
+	if(!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		fprintf(stdout,
+				"Please open the following link in your browser, and "
+				"allow 'tweetd' to access your account. Then paste "
+				"back the provided PIN in here.\n");
 
-        gchar *url = gsocial_get_twitter_authorize_url();
-        printf ( "%s\n", url );
-        fprintf(stdout, "PIN: ");
-        char *pin= get_string_from_stdin();
-        content = gsocial_get_access_key_full_reply(pin);
-        if(content)
-            g_file_set_contents(filename, content, strlen(content), &error);
-        else {
-            g_error("PIN not entered");
-        }
+		gchar *url = gsocial_get_twitter_authorize_url();
+		printf ( "%s\n", url );
+		fprintf(stdout, "PIN: ");
+		char *pin= get_string_from_stdin();
+		content = gsocial_get_access_key_full_reply(pin);
+		if(content)
+			g_file_set_contents(filename, content, strlen(content), &error);
+		else {
+			g_error("PIN not entered");
+		}
 
-    }
+	}
 
-    g_file_get_contents(filename, &content, &bytes, &error);
+	g_file_get_contents(filename, &content, &bytes, &error);
 
-    if(gsocial_parse_reply_access(content, key, secret))
-        g_error("Error: Can't read file");
+	if(gsocial_parse_reply_access(content, key, secret))
+		g_error("Error: Can't read file");
 
-    g_free(content);
-    g_free(filename);
+	g_free(content);
+	g_free(filename);
 
 }
 
+/*
+ * Get last message from twitter.
+ */
 gchar *get_last_message()
 {
-    gchar *last_msg = NULL;
-    GList *messages = gsocial_get_direct_messages(last_id);
-    GSLTweet *tweet;
-    int i;
-    for(i = 0; i<g_list_length(messages); i++){
-        tweet = (GSLTweet *) g_list_nth_data(messages, i);
-        if(i==0){
-            last_id = tweet->id;
-            last_msg = tweet->text;
-        }
-    }
-    return last_msg;
+	gchar *last_msg = NULL;
+	gchar *inc_screen_name= NULL;
+	GList *messages = gsocial_get_direct_messages(last_id);
+	GSLTweet *tweet;
+	int i;
+	for(i = 0; i<g_list_length(messages); i++){
+		tweet = (GSLTweet *) g_list_nth_data(messages, i);
+		if(i==0){
+			last_id = tweet->id;
+			inc_screen_name = tweet->screen_name;
+			if(g_strcmp0(screen_name, inc_screen_name) == 0)
+				last_msg = tweet->text;
+		}
+	}
+	return last_msg;
 }
 
 int main(int argc, char *argv[])
 {
-    const int SLEEP_TIME = 60;      /* Time to sleep between messages */
-    int count = 0;                  /* Number of completed SLEEP_TIME intervals */
-    int unslept;                    /* Time remaining in sleep interval */
-    struct sigaction sa;
+	const int SLEEP_TIME = 30;      /* Time to sleep between messages */
+	int count = 0;                  /* Number of completed SLEEP_TIME intervals */
+	int unslept;                    /* Time remaining in sleep interval */
+	struct sigaction sa;
 
-    /* We begin using the libgsocial library */
-    gsocial_init();
-    gsocial_set_consumer_keys(consu_key, consu_secret);
-    read_keys(&key, &secret);
-    gsocial_set_access_keys(key, secret);
-            
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    sa.sa_handler = tweetd_sigup_handler;
+	/* We begin using the libgsocial library */
+	gsocial_init();
+	gsocial_set_consumer_keys(consu_key, consu_secret);
+	read_keys(&key, &secret);
+	gsocial_set_access_keys(key, secret);
 
-    if (sigaction(SIGHUP, &sa, NULL) == -1)
-        perror("sigaction");
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	sa.sa_handler = tweetd_sigup_handler;
 
-    if (tweetd_daemonize() == -1)
-        _exit(EXIT_FAILURE);
+	if (sigaction(SIGHUP, &sa, NULL) == -1)
+		perror("sigaction");
 
-    tweetd_log_open(LOG_FILE);
-    tweetd_read_config_file(CONFIG_FILE);
+	if (tweetd_daemonize() == -1)
+		_exit(EXIT_FAILURE);
 
-    unslept = SLEEP_TIME;
+	tweetd_log_open(LOG_FILE);
+	tweetd_read_config_file(CONFIG_FILE);
 
-    /*
-     * Main Loop.
-     */
-    while (1) {
-        unslept = sleep(unslept);       /* Returns > 0 if interrupted */
+	unslept = SLEEP_TIME;
 
-        if (hupReceived) {              /* If we got SIGHUP... */
-            hupReceived = 0;            /* Get ready for next SIGHUP */
-            tweetd_log_close();
-            tweetd_log_open(LOG_FILE);
-            tweetd_read_config_file(CONFIG_FILE);
-        }
+	/*
+	 * Main Loop.
+	 */
+	while (1) {
+		unslept = sleep(unslept);       /* Returns > 0 if interrupted */
 
-        if (unslept == 0) {             /* On completed interval */
-            count++;
-            char* last_msg = get_last_message();
-            if(last_msg != NULL)
-                log_message("Last message: %s\n", last_msg);
-            unslept = SLEEP_TIME;       /* Reset interval */
-        }
-    }
+		if (hupReceived) {              /* If we got SIGHUP... */
+			hupReceived = 0;            /* Get ready for next SIGHUP */
+			tweetd_log_close();
+			tweetd_log_open(LOG_FILE);
+			tweetd_read_config_file(CONFIG_FILE);
+		}
+
+		if (unslept == 0) {             /* On completed interval */
+			count++;
+			char * last_msg = get_last_message();
+			char * action;
+			if (last_msg != NULL) {
+				action = tweetd_handle_action(last_msg);
+				log_message("Last message: %s\n", last_msg);
+				log_message("Action : %s\n", action);
+			}
+			unslept = SLEEP_TIME;       /* Reset interval */
+		}
+	}
 }
