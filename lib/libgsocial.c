@@ -347,7 +347,7 @@ static void gsocial_send_request(Session *request)
     }
 
 
-    if (request->action != ACTION_UPDATE || request->action != ACTION_NEW_MESSAGE)
+    if (request->action != ACTION_UPDATE)
         gsocial_parse(reply, request, request->action);
 
     if(reply)

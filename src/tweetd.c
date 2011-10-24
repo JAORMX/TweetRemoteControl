@@ -44,24 +44,24 @@ static volatile sig_atomic_t hupReceived = 0;
  */
 static void log_message(const char *format, ...)
 {
-	va_list argList;
-	const char *TIMESTAMP_FMT = "%F %X";        /* = YYYY-MM-DD HH:MM:SS */
-	char timestamp[TS_BUF_SIZE];
-	time_t t;
-	struct tm *loc;
+    va_list argList;
+    const char *TIMESTAMP_FMT = "%F %X";        /* = YYYY-MM-DD HH:MM:SS */
+    char timestamp[TS_BUF_SIZE];
+    time_t t;
+    struct tm *loc;
 
-	t = time(NULL);
-	loc = localtime(&t);
-	if (loc == NULL ||
-			strftime(timestamp, TS_BUF_SIZE, TIMESTAMP_FMT, loc) == 0)
-		fprintf(logfp, "???Unknown time????: ");
-	else
-		fprintf(logfp, "%s: ", timestamp);
+    t = time(NULL);
+    loc = localtime(&t);
+    if (loc == NULL ||
+            strftime(timestamp, TS_BUF_SIZE, TIMESTAMP_FMT, loc) == 0)
+        fprintf(logfp, "???Unknown time????: ");
+    else
+        fprintf(logfp, "%s: ", timestamp);
 
-	va_start(argList, format);
-	vfprintf(logfp, format, argList);
-	fprintf(logfp, "\n");
-	va_end(argList);
+    va_start(argList, format);
+    vfprintf(logfp, format, argList);
+    fprintf(logfp, "\n");
+    va_end(argList);
 }
 
 /* 
@@ -69,20 +69,20 @@ static void log_message(const char *format, ...)
  */
 static void tweetd_log_open(const char *logFilename)
 {
-	mode_t m;
+    mode_t m;
 
-	m = umask(077);
-	logfp = fopen(logFilename, "a");
-	umask(m);
+    m = umask(077);
+    logfp = fopen(logFilename, "a");
+    umask(m);
 
-	/* If opening the log fails we can't display a message... */
+    /* If opening the log fails we can't display a message... */
 
-	if (logfp == NULL)
-		exit(EXIT_FAILURE);
+    if (logfp == NULL)
+        exit(EXIT_FAILURE);
 
-	setbuf(logfp, NULL);                    /* Disable stdio buffering */
+    setbuf(logfp, NULL);                    /* Disable stdio buffering */
 
-	log_message("Opened log file");
+    log_message("Opened log file");
 }
 
 /*
@@ -90,8 +90,8 @@ static void tweetd_log_open(const char *logFilename)
  */
 static void tweetd_log_close(void)
 {
-	log_message("Closing log file");
-	fclose(logfp);
+    log_message("Closing log file");
+    fclose(logfp);
 }
 
 /* 
@@ -102,81 +102,81 @@ static void tweetd_log_close(void)
  */
 static void tweetd_read_config_file(const char *configFilename)
 {
-	FILE *configfp;
-	char str[SBUF_SIZE];
+    FILE *configfp;
+    char str[SBUF_SIZE];
 
-	configfp = fopen(configFilename, "r");
-	if (configfp != NULL) {                 /* Ignore nonexistent file */
-		if (fgets(str, SBUF_SIZE, configfp) == NULL)
-			str[0] = '\0';
-		else
-			str[strlen(str) - 1] = '\0';    /* Strip trailing '\n' */
-		log_message("Read config file: %s", str);
-		fclose(configfp);
-	}
+    configfp = fopen(configFilename, "r");
+    if (configfp != NULL) {                 /* Ignore nonexistent file */
+        if (fgets(str, SBUF_SIZE, configfp) == NULL)
+            str[0] = '\0';
+        else
+            str[strlen(str) - 1] = '\0';    /* Strip trailing '\n' */
+        log_message("Read config file: %s", str);
+        fclose(configfp);
+    }
 }
 
 /* Set nonzero on receipt of SIGHUP */
 static void tweetd_sigup_handler(int sig)
 {
-	hupReceived = 1;
+    hupReceived = 1;
 }
 
 
 int tweetd_daemonize()
 {
-	int maxfd, fd;
-	uid_t uid, euid;
+    int maxfd, fd;
+    uid_t uid, euid;
 
-	uid = getuid();
-	euid = geteuid();
+    uid = getuid();
+    euid = geteuid();
 
-	if (uid != euid || uid != 0) {
-		printf("ERROR: You have to be logged in as root\n");
-		exit(EXIT_SUCCESS);
-	}
+    if (uid != euid || uid != 0) {
+        printf("ERROR: You have to be logged in as root\n");
+        exit(EXIT_SUCCESS);
+    }
 
-	switch (fork()) {                   /* Become background process */
-		case -1: return -1;
-		case 0:  break;                     /* Child falls through... */
-		default: _exit(EXIT_SUCCESS);       /* while parent terminates */
-	}
+    switch (fork()) {                   /* Become background process */
+        case -1: return -1;
+        case 0:  break;                     /* Child falls through... */
+        default: _exit(EXIT_SUCCESS);       /* while parent terminates */
+    }
 
-	if (setsid() == -1)                 /* Become leader of new session */
-		return -1;
+    if (setsid() == -1)                 /* Become leader of new session */
+        return -1;
 
-	switch (fork()) {                   /* Ensure we are not session leader */
-		case -1: return -1;
-		case 0:  break;
-		default: _exit(EXIT_SUCCESS);
-	}
+    switch (fork()) {                   /* Ensure we are not session leader */
+        case -1: return -1;
+        case 0:  break;
+        default: _exit(EXIT_SUCCESS);
+    }
 
-	umask(0);                       /* Clear file mode creation mask */
+    umask(0);                       /* Clear file mode creation mask */
 
-	if (chdir("/") < 0)
-		exit(EXIT_FAILURE);
+    if (chdir("/") < 0)
+        exit(EXIT_FAILURE);
 
-	/*
-	maxfd = sysconf(_SC_OPEN_MAX);
-	if (maxfd == -1)
-		maxfd = 8192;
+    /*
+       maxfd = sysconf(_SC_OPEN_MAX);
+       if (maxfd == -1)
+       maxfd = 8192;
 
-	for (fd = 0; fd < maxfd; fd++)
-		close(fd);
+       for (fd = 0; fd < maxfd; fd++)
+       close(fd);
 
-	close(STDIN_FILENO);
+       close(STDIN_FILENO);
 
-	fd = open("/dev/null", O_RDWR);
+       fd = open("/dev/null", O_RDWR);
 
-	if (fd != STDIN_FILENO)
-		return -1;
-	if (dup2(STDIN_FILENO, STDOUT_FILENO) != STDOUT_FILENO)
-		return -1;
-	if (dup2(STDIN_FILENO, STDERR_FILENO) != STDERR_FILENO)
-		return -1;
-	*/
+       if (fd != STDIN_FILENO)
+       return -1;
+       if (dup2(STDIN_FILENO, STDOUT_FILENO) != STDOUT_FILENO)
+       return -1;
+       if (dup2(STDIN_FILENO, STDERR_FILENO) != STDERR_FILENO)
+       return -1;
+       */
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -184,95 +184,104 @@ int tweetd_daemonize()
  */
 static int tweetd_handle_action(gchar * action, gchar ** output)
 {
-	FILE *pipe_fp;
-	char outbuf[141];
-	gchar * out;
-	gchar * temp;
+    FILE *pipe_fp;
+    char outbuf[141];
+    gchar * out;
+    gchar * temp;
 
-	out = g_slice_alloc(sizeof(gchar *) * 800);
-	out = "";
+    out = g_slice_alloc(sizeof(gchar *) * 800);
+    out = "";
 
-	/* Redirect standard error to standard output in order to tweet it. */
-	dup2(1,2);
-	/* Create one way pipe line with call to popen() */
-	if ((pipe_fp = popen((char *) action, "r")) == NULL)
-	{
-		perror("popen");
-		exit(1);
-	}
+    /* Redirect standard error to standard output in order to tweet it. */
+    dup2(1,2);
+    /* Create one way pipe line with call to popen() */
+    if ((pipe_fp = popen((char *) action, "r")) == NULL)
+    {
+        perror("popen");
+        exit(1);
+    }
 
 
-	do {
-		fgets(outbuf, 141, pipe_fp);
-		if (feof(pipe_fp)) break;
-		out = g_strconcat(out, outbuf, NULL);
-	} while (!(feof(pipe_fp)));
+    do {
+        fgets(outbuf, 141, pipe_fp);
+        if (feof(pipe_fp)) break;
+        out = g_strconcat(out, outbuf, NULL);
+    } while (!(feof(pipe_fp)));
 
-	pclose(pipe_fp);
-	*output = strdup(out);
+    pclose(pipe_fp);
+    *output = strdup(out);
 
-	return 0;
+    return 0;
 }
 
 static char *get_string_from_stdin(void)
 {
-	char *temp;
-	char *string;
+    char *temp;
+    char *string;
 
-	string = zalloc(1000);
-	if (!string)
-		return NULL;
+    string = zalloc(1000);
+    if (!string)
+        return NULL;
 
-	if (!fgets(string, 999, stdin)) {
-		free(string);
-		return NULL;
-	}
+    if (!fgets(string, 999, stdin)) {
+        free(string);
+        return NULL;
+    }
 
-	temp = strchr(string, '\n');
-	if (temp)
-		*temp = '\0';
+    temp = strchr(string, '\n');
+    if (temp)
+        *temp = '\0';
 
-	return string;
+    return string;
 }
 
+/*
+ * Read the key and the secret key and set the variables to 
+ * those values.
+ */
 static void read_keys(char **key, char **secret)
 {
-	gchar *filename, *content;
-	gchar *path;
-	gsize bytes;
+    gchar *filename, *content;
+    gchar *path;
+    gsize bytes;
 
-	GError *error = NULL;
+    GError *error = NULL;
 
-	filename = g_build_filename (g_get_current_dir(), "keys", NULL);
+    filename = g_build_filename (g_get_current_dir(), "keys", NULL);
 
-	content = NULL;
+    content = NULL;
 
-	if(!g_file_test (filename, G_FILE_TEST_EXISTS)) {
-		fprintf(stdout,
-				"Please open the following link in your browser, and "
-				"allow 'tweetd' to access your account. Then paste "
-				"back the provided PIN in here.\n");
+    if(!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+        path = g_build_path ("/", "/etc/", "tweetd/", NULL);
+        filename = g_build_filename (path, "keys", NULL);
+    }
 
-		gchar *url = gsocial_get_twitter_authorize_url();
-		printf ( "%s\n", url );
-		fprintf(stdout, "PIN: ");
-		char *pin= get_string_from_stdin();
-		content = gsocial_get_access_key_full_reply(pin);
-		if(content)
-			g_file_set_contents(filename, content, strlen(content), &error);
-		else {
-			g_error("PIN not entered");
-		}
+    if(!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+        g_mkdir(path, 0700);
+        fprintf(stdout,
+                "Please open the following link in your browser, and "
+                "allow 'tweetd' to access your account. Then paste "
+                "back the provided PIN in here.\n");
 
-	}
+        gchar *url = gsocial_get_twitter_authorize_url();
+        printf ( "%s\n", url );
+        fprintf(stdout, "PIN: ");
+        char *pin= get_string_from_stdin();
+        content = gsocial_get_access_key_full_reply(pin);
+        if(content)
+            g_file_set_contents(filename, content, strlen(content), &error);
+        else {
+            g_error("PIN not entered");
+        }
+    }
 
-	g_file_get_contents(filename, &content, &bytes, &error);
+    g_file_get_contents(filename, &content, &bytes, &error);
 
-	if(gsocial_parse_reply_access(content, key, secret))
-		g_error("Error: Can't read file");
+    if(gsocial_parse_reply_access(content, key, secret))
+        g_error("Error: Can't read file");
 
-	g_free(content);
-	g_free(filename);
+    g_free(content);
+    g_free(filename);
 
 }
 
@@ -281,81 +290,87 @@ static void read_keys(char **key, char **secret)
  */
 gchar *get_last_message()
 {
-	gchar *last_msg = NULL;
-	gchar *inc_screen_name= NULL;
-	GList *messages = gsocial_get_direct_messages(last_id);
-	GSLTweet *tweet;
-	int i;
-	for(i = 0; i<g_list_length(messages); i++){
-		tweet = (GSLTweet *) g_list_nth_data(messages, i);
-		if(i==0){
-			last_id = tweet->id;
-			inc_screen_name = tweet->screen_name;
-			if(g_strcmp0(screen_name, inc_screen_name) == 0)
-				last_msg = tweet->text;
-		}
-	}
-	return last_msg;
+    gchar *last_msg = NULL;
+    gchar *inc_screen_name= NULL;
+    GList *messages = gsocial_get_direct_messages(last_id);
+    GSLTweet *tweet;
+    int i;
+    for(i = 0; i<g_list_length(messages); i++){
+        tweet = (GSLTweet *) g_list_nth_data(messages, i);
+        if(i==0){
+            last_id = tweet->id;
+            inc_screen_name = tweet->screen_name;
+            if(g_strcmp0(screen_name, inc_screen_name) == 0)
+                last_msg = tweet->text;
+        }
+    }
+    return last_msg;
 }
 
 int main(int argc, char *argv[])
 {
-	const int SLEEP_TIME = 30;      /* Time to sleep between messages */
-	int count = 0;                  /* Number of completed SLEEP_TIME intervals */
-	int unslept;                    /* Time remaining in sleep interval */
-	struct sigaction sa;
+    const int SLEEP_TIME = 30;      /* Time to sleep between messages */
+    int count = 0;                  /* Number of completed SLEEP_TIME intervals */
+    int unslept;                    /* Time remaining in sleep interval */
+    struct sigaction sa;
 
-	/* We begin using the libgsocial library */
-	gsocial_init();
-	gsocial_set_consumer_keys(consu_key, consu_secret);
-	read_keys(&key, &secret);
-	gsocial_set_access_keys(key, secret);
+    /* We begin using the libgsocial library */
+    gsocial_init();
+    gsocial_set_consumer_keys(consu_key, consu_secret);
+    read_keys(&key, &secret);
+    gsocial_set_access_keys(key, secret);
 
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = tweetd_sigup_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sa.sa_handler = tweetd_sigup_handler;
 
-	if (sigaction(SIGHUP, &sa, NULL) == -1)
-		perror("sigaction");
+    if (sigaction(SIGHUP, &sa, NULL) == -1)
+        perror("sigaction");
 
-	if (tweetd_daemonize() == -1)
-		_exit(EXIT_FAILURE);
+    if (tweetd_daemonize() == -1)
+        _exit(EXIT_FAILURE);
 
-	tweetd_log_open(LOG_FILE);
-	tweetd_read_config_file(CONFIG_FILE);
+    tweetd_log_open(LOG_FILE);
+    tweetd_read_config_file(CONFIG_FILE);
 
-	unslept = SLEEP_TIME;
+    unslept = SLEEP_TIME;
 
-	/*
-	 * Main Loop.
-	 */
-	while (1) {
-		unslept = sleep(unslept);       /* Returns > 0 if interrupted */
+    /*
+     * Main Loop.
+     */
+    while (1) {
+        unslept = sleep(unslept);       /* Returns > 0 if interrupted */
 
-		if (hupReceived) {              /* If we got SIGHUP... */
-			hupReceived = 0;            /* Get ready for next SIGHUP */
-			tweetd_log_close();
-			tweetd_log_open(LOG_FILE);
-			tweetd_read_config_file(CONFIG_FILE);
-		}
+        if (hupReceived) {              /* If we got SIGHUP... */
+            hupReceived = 0;            /* Get ready for next SIGHUP */
+            tweetd_log_close();
+            tweetd_log_open(LOG_FILE);
+            tweetd_read_config_file(CONFIG_FILE);
+        }
 
-		if (unslept == 0) {             /* On completed interval */
-			count++;
-			char * last_msg = get_last_message();
-			char * action;
-			if (last_msg != NULL && first_time == 1) {
-				log_message("Last message: %s\n", last_msg);
-				if(tweetd_handle_action(last_msg, &action) == 0) {
-					log_message("handle_action: %s\n", action);
-					log_message("Everything went OK");
-					//gsocial_send_message(screen_name, 
-					//		last_msg);
-				} else {
-					log_message("Everything went WRONG");
-				}
-			}
+        if (unslept == 0) {             /* On completed interval */
+            count++;
+            char * last_msg = get_last_message();
+            char * action;
+            if (last_msg != NULL && first_time == 1) {
+                log_message("Last message: %s\n", last_msg);
+                if(tweetd_handle_action(last_msg, &action) == 0) {
+                    log_message("handle_action: %s\n", action);
+                    log_message("Everything went OK");
+                    //gsocial_send_message(screen_name, //		last_msg);
+                    char tweet[140];
+                    sprintf(tweet, "@%s:  %s", screen_name, "Done");
+                    int sended = gsocial_send_tweet(strdup(tweet));
+                    if(sended)
+                        log_message("Action responded");
+                    else
+                        log_message("Something is wrong with sending the message");
+                } else {
+                    log_message("Everything went WRONG");
+                }
+            }
             first_time = 1;
-			unslept = SLEEP_TIME;       /* Reset interval */
-		}
-	}
+            unslept = SLEEP_TIME;       /* Reset interval */
+        }
+    }
 }
